@@ -11,11 +11,15 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		required: [true, 'Please enter your email!'],
 	},
-	password: {
-		type: String,
-		required: [true, 'Please enter your password'],
-		minLength: [4, 'Password should be greater than 4 characters'],
-		select: false,
+	avatar: {
+		public_id: {
+			type: String,
+			required: true,
+		},
+		url: {
+			type: String,
+			required: true,
+		},
 	},
 	phoneNumber: {
 		type: Number,
@@ -46,22 +50,16 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		default: 'user',
 	},
-	avatar: {
-		public_id: {
-			type: String,
-			required: true,
-		},
-		url: {
-			type: String,
-			required: true,
-		},
+	password: {
+		type: String,
+		required: [true, 'Please enter your password'],
+		minLength: [1, 'Password should be greater than 4 characters'],
+		select: false,
 	},
 	createdAt: {
 		type: Date,
 		default: Date.now(),
 	},
-	resetPasswordToken: String,
-	resetPasswordTime: Date,
 });
 
 //  Hash password
@@ -70,19 +68,20 @@ userSchema.pre('save', async function (next) {
 		next();
 	}
 
-	this.password = await hash(this.password, 10);
+	this.password = await bcrypt.hash(this.password, 10);
 });
 
 // jwt token
 userSchema.methods.getJwtToken = function () {
-	return sign({ id: this._id }, process.env.JWT_SECRET_KEY, {
+	return jwt.sign({ id: this._id }, process.env.ACTIVATION_SECRET, {
 		expiresIn: process.env.JWT_EXPIRES,
 	});
 };
 
 // compare password
 userSchema.methods.comparePassword = async function (enteredPassword) {
-	return await compare(enteredPassword, this.password);
+	console.log('entered compare password. entered password: ', enteredPassword);
+	return await bcrypt.compare(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);
